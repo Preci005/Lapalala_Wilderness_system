@@ -184,15 +184,46 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                                                         <div class="col-sm-6 mobile-inputs">
                                                             <h4 class="sub-title"></h4>
                                                                 <div class="form-group row">
-                                                                    <div class="col-sm-6">
-                                                                        <label for="start_date" class="block">Start Date</label>
-                                                                        <input name="start_date" id="dropper-animation" class="form-control start_date" type="text" autocomplete="off" placeholder="" value="<?php echo isset($row['start_date']) ? $row['start_date'] : ''; ?>">
+
+                                                                        <!-- Start Date -->
+                                                                        <div class="col-sm-3">
+                                                                            <label class="block">Start Date</label>
+                                                                            <input name="start_date" id="dropper-animation"
+                                                                                class="form-control start_date"
+                                                                                type="text" autocomplete="off"
+                                                                                value="<?php echo isset($row['start_date']) ? $row['start_date'] : ''; ?>">
+                                                                        </div>
+
+                                                                        <!-- Start Time -->
+                                                                        <div class="col-sm-3">
+                                                                            <label class="block">Start Time</label>
+                                                                            <input type="time"
+                                                                                id="start_time"
+                                                                                class="form-control"
+                                                                                value="<?php echo isset($row['start_time']) ? $row['start_time'] : ''; ?>">
+                                                                        </div>
+
+                                                                        <!-- End Date -->
+                                                                        <div class="col-sm-3">
+                                                                            <label class="block">End Date</label>
+                                                                            <input id="dropper-default"
+                                                                                class="form-control due_date"
+                                                                                name="due_date"
+                                                                                type="text" autocomplete="off"
+                                                                                value="<?php echo isset($row['due_date']) ? $row['due_date'] : ''; ?>">
+                                                                        </div>
+
+                                                                        <!-- End Time -->
+                                                                        <div class="col-sm-3">
+                                                                            <label class="block">End Time</label>
+                                                                            <input type="time"
+                                                                                id="end_time"
+                                                                                class="form-control"
+                                                                                value="<?php echo isset($row['end_time']) ? $row['end_time'] : ''; ?>">
+                                                                        </div>
+
                                                                     </div>
-                                                                    <div class="col-sm-6">
-                                                                        <label for="due_date" class="block">End Date</label>
-                                                                         <input id="dropper-default" class="form-control due_date" name="due_date" type="text" autocomplete="off" placeholder="" value="<?php echo isset($row['due_date']) ? $row['due_date'] : ''; ?>">
-                                                                    </div>
-                                                                </div>
+
                                                                 <?php if(isset($row) && !empty($row)): ?>
                                                                 <?php
                                                                     $selected_priority = isset($row['priority']) ? $row['priority'] : '';
@@ -410,16 +441,19 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                     return;
                 }
 
-                var data = {
+                            var data = {
                     title: $('#title').val(),
                     description: $('#summernote').summernote('code'),
                     assigned_to: $('#assigned_to').val(),
                     priority: $('input[name="priority"]:checked').val(),
                     start_date: startDate,
                     due_date: dueDate,
+                    start_time: $('#start_time').val(),
+                    end_time: $('#end_time').val(),
                     status: "Pending",
                     action: "tasks-add",
                 };
+
 
                 if (data.title === '' || data.description === '' || 
                     data.priority === '' || data.assigned_to === '' || data.start_date === '' || 
@@ -432,6 +466,17 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                     });
                     return;
                 }
+
+                if (!data.start_time || !data.end_time) {
+    Swal.fire({
+        icon: 'warning',
+        text: 'Please select start and end time.',
+        confirmButtonColor: '#ffc107',
+        confirmButtonText: 'OK'
+    });
+    return;
+}
+
                 console.log("START DATE HERE: "+ $('#dropper-animation').val())
                 console.log('Data HERE: ' + JSON.stringify(data));
                 $.ajax({

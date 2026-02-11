@@ -190,11 +190,14 @@ $timeRow = mysqli_fetch_assoc($timeResult);
     }
 
     // Check if already clocked in today
-    $stmt = mysqli_prepare($conn, "SELECT * FROM tblattendance
-WHERE staff_id = ?
-AND date = CURDATE()
+   /*$stmt = mysqli_prepare($conn, "
+    SELECT * FROM tblattendance
+    WHERE staff_id = ?
+    AND date = CURDATE()
+    AND time_out IS NULL
 ");
-   mysqli_stmt_bind_param($stmt, 's', $staff_id);
+mysqli_stmt_bind_param($stmt, 's', $staff_id);
+
 
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
@@ -203,14 +206,38 @@ AND date = CURDATE()
         $response = array('status' => 'error', 'message' => 'You have already clocked in today.');
         echo json_encode($response);
         exit;
-    }
+    }*/
 
-    // Insert clock in time with location data and late minutes
-   $stmt = mysqli_prepare($conn, "
-INSERT INTO tblattendance
-(staff_id, time_in, date, clock_in_latitude, clock_in_longitude, late_minutes)
-VALUES (?, CURTIME(), CURDATE(), ?, ?, ?)
-");
+
+
+                // Check how many sessions already exist today
+        $stmt = mysqli_prepare($conn, "
+            SELECT COUNT(*) as total_sessions 
+            FROM tblattendance
+            WHERE staff_id = ?
+            AND date = CURDATE()
+        ");
+        mysqli_stmt_bind_param($stmt, 's', $staff_id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $row = mysqli_fetch_assoc($result);
+
+        if ($row['total_sessions'] >= 2) {
+            $response = array(
+                'status' => 'error',
+                'message' => 'You have reached the maximum of 2 clock-in sessions for today.'
+            );
+            echo json_encode($response);
+            exit;
+        }
+
+
+            // Insert clock in time with location data and late minutes
+        $stmt = mysqli_prepare($conn, "
+        INSERT INTO tblattendance
+        (staff_id, time_in, date, clock_in_latitude, clock_in_longitude, late_minutes)
+        VALUES (?, CURTIME(), CURDATE(), ?, ?, ?)
+        ");
 
 
    mysqli_stmt_bind_param(
@@ -300,8 +327,14 @@ function clockOut($staff_id, $latitude = null, $longitude = null) {
     }
 
     // Check if clocked in today
-    $stmt = mysqli_prepare($conn, "SELECT * FROM tblattendance WHERE staff_id = ? AND DATE(date) = ? AND time_out IS NULL");
-    mysqli_stmt_bind_param($stmt, 'ss', $staff_id, $currentDate);
+   $stmt = mysqli_prepare($conn, "
+    SELECT * FROM tblattendance 
+    WHERE staff_id = ? 
+    AND date = CURDATE() 
+    AND time_out IS NULL
+    ");
+    mysqli_stmt_bind_param($stmt, 's', $staff_id);
+
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
 
@@ -323,14 +356,29 @@ $isFridayEarly = isFridayEarlyClockOut($timeRow['db_time'], $timeRow['db_date'])
     }
 
     // Update clock out time with location data
-    $stmt = mysqli_prepare($conn, "UPDATE tblattendance
-SET time_out = CURTIME(),
-    clock_out_latitude = ?,
-    clock_out_longitude = ?,
-    clocked_out_offsite = ?,
-    recorded_hours = ?
+  $stmt = mysqli_prepare($conn, "
+    UPDATE tblattendance 
+    SET 
+        time_out = CURTIME(),
+        clock_out_latitude = ?, 
+        clock_out_longitude = ?, 
+        clocked_out_offsite = ?, 
+        recorded_hours = ?
+    WHERE attendance_id = (
+        SELECT attendance_id FROM (
+            SELECT attendance_id FROM tblattendance
+            WHERE staff_id = ?
+            AND date = CURDATE()
+            AND time_out IS NULL
+            ORDER BY attendance_id DESC
+            LIMIT 1
+        ) as temp
+    )
 ");
-   mysqli_stmt_bind_param(
+
+
+
+mysqli_stmt_bind_param(
     $stmt,
     'ddids',
     $latitude,
@@ -339,6 +387,7 @@ SET time_out = CURTIME(),
     $recordedHours,
     $staff_id
 );
+
 
     $result = mysqli_stmt_execute($stmt);
 

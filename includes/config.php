@@ -1,9 +1,9 @@
 <?php
 // Database credentials
 define('DB_HOST', 'localhost');
-define('DB_USER', 'lwschool_leave_portal');
-define('DB_PASS', 'lwschool_leave_portal');
-define('DB_NAME', 'lwschool_leave_portal');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+define('DB_NAME', 'leave_portal');
 
 // Establish database connection using MySQLi
 $conn = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);

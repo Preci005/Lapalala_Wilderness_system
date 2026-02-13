@@ -145,7 +145,8 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                                                                             e.last_name,
                                                                             a.total_hours,
                                                                             a.time_in,
-                                                                            a.time_out
+                                                                            a.time_out,
+                                                                              a.late_minutes
                                                                         FROM tblattendance a
                                                                         JOIN tblemployees e ON a.staff_id = e.staff_id
                                                                         WHERE a.staff_id = ?
@@ -160,6 +161,23 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                                                                     mysqli_stmt_execute($stmt);
                                                                     $result = mysqli_stmt_get_result($stmt);
 
+                                                                      // Helper function to format late time
+                                                                        function formatLateTimeDisplay($lateMinutes) {
+                                                                            if ($lateMinutes === null || $lateMinutes <= 0) {
+                                                                                return '-';
+                                                                            }
+                                                                            $hours = floor($lateMinutes / 60);
+                                                                            $minutes = $lateMinutes % 60;
+                                                                            $result = '';
+                                                                            if ($hours > 0) {
+                                                                                $result .= $hours . ' hr' . ($hours > 1 ? 's ' : ' ');
+                                                                            }
+                                                                            if ($minutes > 0) {
+                                                                                $result .= $minutes . ' min' . ($minutes > 1 ? 's' : '');
+                                                                            }
+                                                                            return trim($result);
+                                                                        }
+
                                                                      ?>
                                                                     <div class="card">
                                                                         <div class="card-header">
@@ -173,53 +191,65 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                                                                                             <th>Date</th>
                                                                                             <th>Time In</th>
                                                                                             <th>Time Out</th>
+                                                                                            <th>Late By</th>
                                                                                             <th>Total Hours</th>
                                                                                             <th>Status(In/Out)</th>
                                                                                         </tr>
                                                                                     </thead>
                                                                                     <tbody>
-                                                                                        <?php while ($row = mysqli_fetch_assoc($result)): ?>
-                                                                                            <?php
-                                                                                                $time_in = new DateTime($row['time_in']);
-                                                                                                $time_out = $row['time_out'] ? new DateTime($row['time_out']) : null;
-                                                                                                // Calculate and format total hours
-                                                                                                if ($time_out) {
+
+                                                                                    <?php while ($row = mysqli_fetch_assoc($result)): ?>
+                                                                                                <?php
                                                                                                     $time_in = new DateTime($row['time_in']);
-                                                                                                    $interval = $time_in->diff($time_out);
-                                                                                                    
-                                                                                                    $hours = $interval->h;
-                                                                                                    $minutes = $interval->i;
-                                                                                                    $seconds = $interval->s;
+                                                                                                    $time_out = $row['time_out'] ? new DateTime($row['time_out']) : null;
 
-                                                                                                    $total_hours = '';
-                                                                                                    if ($hours > 0) {
-                                                                                                        $total_hours .= $hours . ' hr' . ($hours > 1 ? 's ' : ' ');
-                                                                                                    }
-                                                                                                    if ($minutes > 0) {
-                                                                                                        $total_hours .= $minutes . ' min' . ($minutes > 1 ? 's ' : ' ');
-                                                                                                    }
-                                                                                                    if ($seconds > 0) {
-                                                                                                        $total_hours .= $seconds . ' sec' . ($seconds > 1 ? 's' : '');
+                                                                                                    // ---- LATE LOGIC (ADD THIS) ----
+                                                                                                    $lateMinutes = isset($row['late_minutes']) ? (int)$row['late_minutes'] : 0;
+                                                                                                    $late_display = formatLateTimeDisplay($lateMinutes);
+                                                                                                    $late_class = ($lateMinutes > 0)
+                                                                                                        ? 'style="color: red; font-weight: bold;"'
+                                                                                                        : '';
+
+                                                                                                    // ---- TOTAL HOURS ----
+                                                                                                    if ($time_out) {
+                                                                                                        $interval = $time_in->diff($time_out);
+
+                                                                                                        $hours = $interval->h;
+                                                                                                        $minutes = $interval->i;
+                                                                                                        $seconds = $interval->s;
+
+                                                                                                        $total_hours = '';
+                                                                                                        if ($hours > 0) {
+                                                                                                            $total_hours .= $hours . ' hr' . ($hours > 1 ? 's ' : ' ');
+                                                                                                        }
+                                                                                                        if ($minutes > 0) {
+                                                                                                            $total_hours .= $minutes . ' min' . ($minutes > 1 ? 's ' : ' ');
+                                                                                                        }
+                                                                                                        if ($seconds > 0) {
+                                                                                                            $total_hours .= $seconds . ' sec' . ($seconds > 1 ? 's' : '');
+                                                                                                        }
+
+                                                                                                        $total_hours = trim($total_hours);
+                                                                                                    } else {
+                                                                                                        $total_hours = '-';
                                                                                                     }
 
-                                                                                                    $total_hours = trim($total_hours);
-                                                                                                } else {
-                                                                                                    $total_hours = '-';
-                                                                                                }
-                                                                                                // Determine status
-                                                                                                $status = $row['time_out'] ? 'In/Out' : 'In';
+                                                                                                    // Status formatting
+                                                                                                    $status = $row['time_out'] ? 'In/Out' : 'In';
 
-                                                                                                // Split and color the status
-                                                                                                if ($status == 'In/Out') {
-                                                                                                    $formatted_status = '<span style="color: green;">In</span>/<span style="color: orange;">Out</span>';
-                                                                                                } else {
-                                                                                                    $formatted_status = '<span style="color: green;">In</span>';
-                                                                                                }
-                                                                                            ?>
+                                                                                                    if ($status == 'In/Out') {
+                                                                                                        $formatted_status = '<span style="color: green;">In</span>/<span style="color: orange;">Out</span>';
+                                                                                                    } else {
+                                                                                                        $formatted_status = '<span style="color: green;">In</span>';
+                                                                                                    }
+                                                                                                ?>
+
+                                                                                       
                                                                                             <tr>
                                                                                                 <td><?php echo date('M d, Y', strtotime($row['date'])); ?></td>
                                                                                                 <td><?php echo htmlspecialchars(date('h:i A', strtotime($row['time_in']))); ?></td>
                                                                                                 <td><?php echo $time_out ? htmlspecialchars(date('h:i A', strtotime($row['time_out']))) : '-'; ?></td>
+                                                                                                <td <?php echo $late_class; ?>><?php echo htmlspecialchars($late_display); ?></td>
                                                                                                 <td><strong><?php echo htmlspecialchars($total_hours); ?></strong></td>
                                                                                                 <td><?php echo $formatted_status; ?></td>
                                                                                             </tr>
@@ -230,7 +260,9 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                                                                                             <th>Date</th>
                                                                                             <th>Time In</th>
                                                                                             <th>Time Out</th>
+                                                                                            <th>Late By</th>
                                                                                             <th>Total Hours</th>
+
                                                                                             <th>Status(In/Out)</th>
                                                                                         </tr>
                                                                                     </tfoot>

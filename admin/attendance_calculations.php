@@ -37,15 +37,21 @@ function calculateHoursFromTimeString($timeString) {
 
 /**
  * Calculate extra hours beyond standard work hours
+ * Each extra hour counts as 1 hour 30 minutes (1.5x rate)
  * 
  * @param float $hoursWorked Total hours worked
- * @return float Extra hours (0 if less than standard)
+ * @return float Adjusted extra hours
  */
 function calculateExtraHours($hoursWorked) {
     $extra = $hoursWorked - STANDARD_WORK_HOURS;
-    return $extra > 0 ? $extra : 0;
-}
 
+    if ($extra > 0) {
+        return $extra * 1.5; // 1 hour becomes 1.5 hours
+    }
+
+    return 0;
+}
+ 
 /**
  * Calculate deficit hours (hours below standard)
  * 

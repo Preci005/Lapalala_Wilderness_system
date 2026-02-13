@@ -23,7 +23,7 @@ if ($userRole !== 'Staff' && $_SESSION['is_supervisor'] !== 1) {
 
         <?php include('../includes/topbar.php')?>
 
-        <div class="pcoded-main-container">
+        <div class="pcoded-main-container"> 
             <div class="pcoded-wrapper">
                  <?php $page_name = "my_attendance"; ?>
                 <?php include('../includes/sidebar.php')?>

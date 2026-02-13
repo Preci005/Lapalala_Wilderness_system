@@ -165,8 +165,8 @@ function clockIn($staff_id, $latitude = null, $longitude = null) {
 $timeResult = mysqli_query($conn, "SELECT CURDATE() AS db_date, CURTIME() AS db_time");
 $timeRow = mysqli_fetch_assoc($timeResult);
 
-//$dbDate = $timeRow['db_date'];
-//$dbTime = $timeRow['db_time'];
+$dbDate = $timeRow['db_date'];
+$dbTime = $timeRow['db_time'];
 
   
     // Calculate late minutes for weekdays
@@ -188,6 +188,30 @@ $timeRow = mysqli_fetch_assoc($timeResult);
         echo json_encode($response);
         exit;
     }
+
+
+    
+    $stmt = mysqli_prepare($conn, "
+    SELECT attendance_id 
+    FROM tblattendance
+    WHERE staff_id = ?
+    AND date = CURDATE()
+    AND time_out IS NULL
+    LIMIT 1
+");
+
+mysqli_stmt_bind_param($stmt, 's', $staff_id);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+
+if (mysqli_num_rows($result) > 0) {
+    $response = array(
+        'status' => 'error',
+        'message' => 'You must clock out from your previous session before clocking in again.'
+    );
+    echo json_encode($response);
+    exit;
+}
 
     // Check if already clocked in today
    /*$stmt = mysqli_prepare($conn, "
@@ -292,6 +316,9 @@ function clockOut($staff_id, $latitude = null, $longitude = null) {
         exit;
     }
 
+
+  
+
     // Location is optional for clock-out - users can clock out from anywhere
     $clockedOutOffsite = 0;
     
@@ -325,6 +352,8 @@ function clockOut($staff_id, $latitude = null, $longitude = null) {
         echo json_encode($response);
         exit;
     }
+
+    
 
     // Check if clocked in today
    $stmt = mysqli_prepare($conn, "
